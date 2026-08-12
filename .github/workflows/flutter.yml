@@ -1,0 +1,8 @@
+- name: Install dependencies
+  run: cd frontend-flutter && flutter pub get
+
+- name: Run tests
+  run: cd frontend-flutter && flutter test
+
+- name: Build APK (Android)
+  run: cd frontend-flutter && flutter build apk --release
