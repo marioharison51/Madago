@@ -22,14 +22,24 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
+      - name: Generate missing Android scaffolding if needed
+        working-directory: frontend-flutter
+        run: |
+          if [ ! -d "android" ]; then
+            flutter create --platforms=android --project-name madago --org com.marioharison51 .
+          fi
+
       - name: Install dependencies
-        run: cd frontend-flutter && flutter pub get
+        working-directory: frontend-flutter
+        run: flutter pub get
 
       - name: Run tests
-        run: cd frontend-flutter && flutter test || echo "No tests found"
+        working-directory: frontend-flutter
+        run: flutter test || echo "No tests found"
 
       - name: Build APK (Android)
-        run: cd frontend-flutter && flutter build apk --release
+        working-directory: frontend-flutter
+        run: flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
