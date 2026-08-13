@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Stockage simple en mémoire (à remplacer par une vraie base de données plus tard)
 let utilisateurs = [];
