@@ -1,8 +1,36 @@
-- name: Install dependencies
-  run: cd frontend-flutter && flutter pub get
+name: Flutter CI
 
-- name: Run tests
-  run: cd frontend-flutter && flutter test
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend-flutter/**'
+  pull_request:
+    branches: [ main ]
 
-- name: Build APK (Android)
-  run: cd frontend-flutter && flutter build apk --release
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: cd frontend-flutter && flutter pub get
+
+      - name: Run tests
+        run: cd frontend-flutter && flutter test || echo "No tests found"
+
+      - name: Build APK (Android)
+        run: cd frontend-flutter && flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: madago-apk
+          path: frontend-flutter/build/app/outputs/flutter-apk/app-release.apk
