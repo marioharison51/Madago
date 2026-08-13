@@ -12,6 +12,7 @@ const projetRoutes = require('./projetController');
 const messageRoutes = require('./messageController');
 
 app.use(express.json());
+app.use(express.static(__dirname));
 app.use('/', profilRoutes);
 app.use('/', authRoutes);
 app.use('/', projetRoutes);
