@@ -10,6 +10,7 @@ const profilRoutes = require('./profilController');
 const authRoutes = require('./authController');
 const projetRoutes = require('./projetController');
 const messageRoutes = require('./messageController');
+const evenementRoutes = require('./evenementController');
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -17,6 +18,7 @@ app.use('/', profilRoutes);
 app.use('/', authRoutes);
 app.use('/', projetRoutes);
 app.use('/', messageRoutes);
+app.use('/', evenementRoutes);
 
 io.on('connection', (socket) => {
   console.log('Utilisateur connecté :', socket.id);
