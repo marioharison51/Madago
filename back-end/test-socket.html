@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Madago - Test Chat en temps réel</title>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; }
+    #messages { list-style: none; padding: 0; }
+    #messages li { background: #f2f4f8; padding: 8px 12px; margin-bottom: 6px; border-radius: 6px; }
+    input { padding: 8px; width: 70%; }
+    button { padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h2>Madago — Test chat en temps réel</h2>
+  <input id="messageInput" placeholder="Ton message">
+  <button onclick="envoyer()">Envoyer</button>
+  <ul id="messages"></ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on('nouveauMessage', (data) => {
+      const li = document.createElement('li');
+      li.textContent = data.contenu;
+      document.getElementById('messages').appendChild(li);
+    });
+
+    function envoyer() {
+      const input = document.getElementById('messageInput');
+      if (!input.value.trim()) return;
+      socket.emit('envoyerMessage', { contenu: input.value });
+      input.value = '';
+    }
+  </script>
+</body>
+</html>
