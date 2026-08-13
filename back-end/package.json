@@ -1,0 +1,14 @@
+{
+  "name": "madago-backend",
+  "version": "1.0.0",
+  "description": "Backend de la plateforme Madago",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"No tests found\" && exit 0"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.19.2"
+  }
+}
