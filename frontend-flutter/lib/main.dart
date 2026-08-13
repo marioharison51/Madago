@@ -63,12 +63,125 @@ class _ProfilPageState extends State<ProfilPage> {
                     },
                     child: const Text('Modifier le profil'),
                   ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProjetsPage()),
+                      );
+                    },
+                    child: const Text('Voir les projets'),
+                  ),
                   const SizedBox(height: 20),
                   const Text('Messages :'),
                   ...profil!['messages'].map<Widget>((msg) => Text('${msg['sender']}: ${msg['text']}')).toList(),
                 ],
               ),
             ),
+    );
+  }
+}
+
+class ProjetsPage extends StatefulWidget {
+  const ProjetsPage({super.key});
+
+  @override
+  State<ProjetsPage> createState() => _ProjetsPageState();
+}
+
+class _ProjetsPageState extends State<ProjetsPage> {
+  List<dynamic> projets = [];
+  final titreController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final besoinsController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProjets();
+  }
+
+  Future<void> fetchProjets() async {
+    final response = await http.get(Uri.parse('http://localhost:3000/projets'));
+    if (response.statusCode == 200) {
+      setState(() {
+        projets = json.decode(response.body);
+      });
+    }
+  }
+
+  Future<void> publierProjet() async {
+    if (titreController.text.isEmpty || descriptionController.text.isEmpty) return;
+
+    await http.post(
+      Uri.parse('http://localhost:3000/projets'),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "titre": titreController.text,
+        "description": descriptionController.text,
+        "besoins": besoinsController.text.split(',').map((b) => b.trim()).toList(),
+        "createur": "Ismaël",
+      }),
+    );
+
+    titreController.clear();
+    descriptionController.clear();
+    besoinsController.clear();
+    fetchProjets();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Projets')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: titreController,
+                  decoration: const InputDecoration(labelText: "Titre du projet"),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: "Description"),
+                ),
+                TextField(
+                  controller: besoinsController,
+                  decoration: const InputDecoration(labelText: "Besoins (séparés par des virgules)"),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: publierProjet,
+                  child: const Text("Publier le projet"),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              itemCount: projets.length,
+              itemBuilder: (context, index) {
+                final projet = projets[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: ListTile(
+                    title: Text(projet['titre']),
+                    subtitle: Text(
+                      "${projet['description']}\nBesoins : ${(projet['besoins'] as List).join(', ')}\nPar : ${projet['createur']}",
+                    ),
+                    isThreeLine: true,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
