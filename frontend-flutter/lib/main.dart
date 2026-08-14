@@ -83,6 +83,16 @@ class _ProfilPageState extends State<ProfilPage> {
                     },
                     child: const Text('Rechercher par compétences'),
                   ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EvenementsPage()),
+                      );
+                    },
+                    child: const Text('Événements et ateliers'),
+                  ),
                   const SizedBox(height: 20),
                   const Text('Messages :'),
                   ...profil!['messages'].map<Widget>((msg) => Text('${msg['sender']}: ${msg['text']}')).toList(),
@@ -247,6 +257,107 @@ class _RecherchePageState extends State<RecherchePage> {
                 return ListTile(
                   title: Text(profil['nom']),
                   subtitle: Text((profil['competences'] as List).join(', ')),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EvenementsPage extends StatefulWidget {
+  const EvenementsPage({super.key});
+
+  @override
+  State<EvenementsPage> createState() => _EvenementsPageState();
+}
+
+class _EvenementsPageState extends State<EvenementsPage> {
+  List<dynamic> evenements = [];
+  final nomController = TextEditingController();
+  final dateController = TextEditingController();
+  final lieuController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEvenements();
+  }
+
+  Future<void> fetchEvenements() async {
+    final response = await http.get(Uri.parse('http://localhost:3000/evenements'));
+    if (response.statusCode == 200) {
+      setState(() {
+        evenements = json.decode(response.body);
+      });
+    }
+  }
+
+  Future<void> creerEvenement() async {
+    if (nomController.text.isEmpty || dateController.text.isEmpty || lieuController.text.isEmpty) return;
+
+    await http.post(
+      Uri.parse('http://localhost:3000/evenements'),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "nom": nomController.text,
+        "date": dateController.text,
+        "lieu": lieuController.text,
+      }),
+    );
+
+    nomController.clear();
+    dateController.clear();
+    lieuController.clear();
+    fetchEvenements();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Événements et ateliers')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: nomController,
+                  decoration: const InputDecoration(labelText: "Nom de l'événement"),
+                ),
+                TextField(
+                  controller: dateController,
+                  decoration: const InputDecoration(labelText: "Date (jj/mm/aaaa)"),
+                ),
+                TextField(
+                  controller: lieuController,
+                  decoration: const InputDecoration(labelText: "Lieu"),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: creerEvenement,
+                  child: const Text("Créer l'événement"),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              itemCount: evenements.length,
+              itemBuilder: (context, index) {
+                final evenement = evenements[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: ListTile(
+                    title: Text(evenement['nom']),
+                    subtitle: Text(
+                      "${evenement['date']} — ${evenement['lieu']}\nParticipants : ${(evenement['participants'] as List).length}",
+                    ),
+                  ),
                 );
               },
             ),
