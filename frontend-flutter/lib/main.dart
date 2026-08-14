@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:convert';
 
 void main() => runApp(const MadagoApp());
@@ -92,6 +93,16 @@ class _ProfilPageState extends State<ProfilPage> {
                       );
                     },
                     child: const Text('Événements et ateliers'),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ChatPage()),
+                      );
+                    },
+                    child: const Text('Chat en temps réel'),
                   ),
                   const SizedBox(height: 20),
                   const Text('Messages :'),
@@ -360,6 +371,87 @@ class _EvenementsPageState extends State<EvenementsPage> {
                   ),
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ChatPage extends StatefulWidget {
+  const ChatPage({super.key});
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  late IO.Socket socket;
+  final List<String> messages = [];
+  final messageController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    connecterSocket();
+  }
+
+  void connecterSocket() {
+    socket = IO.io('http://localhost:3000', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': true,
+    });
+
+    socket.onConnect((_) {
+      print('Connecté au serveur de chat');
+    });
+
+    socket.on('nouveauMessage', (data) {
+      setState(() {
+        messages.add(data['contenu']);
+      });
+    });
+  }
+
+  void envoyerMessage() {
+    if (messageController.text.isEmpty) return;
+    socket.emit('envoyerMessage', {'contenu': messageController.text});
+    messageController.clear();
+  }
+
+  @override
+  void dispose() {
+    socket.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Chat en temps réel')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: messages.length,
+              itemBuilder: (context, index) => ListTile(
+                title: Text(messages[index]),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: messageController,
+                    decoration: const InputDecoration(labelText: "Ton message"),
+                  ),
+                ),
+                IconButton(icon: const Icon(Icons.send), onPressed: envoyerMessage),
+              ],
             ),
           ),
         ],
