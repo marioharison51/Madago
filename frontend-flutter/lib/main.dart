@@ -362,7 +362,17 @@ class _ProfilPageState extends State<ProfilPage> {
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final resultat = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ModifierProfilPage(userId: widget.userId, profilActuel: profil!),
+                              ),
+                            );
+                            if (resultat == true) {
+                              fetchProfil();
+                            }
+                          },
                           child: const Text('Modifier le profil'),
                         ),
                         const SizedBox(height: 10),
@@ -411,6 +421,107 @@ class _ProfilPageState extends State<ProfilPage> {
                     ),
                   ),
                 ),
+    );
+  }
+}
+
+class ModifierProfilPage extends StatefulWidget {
+  final String userId;
+  final Map<String, dynamic> profilActuel;
+  const ModifierProfilPage({super.key, required this.userId, required this.profilActuel});
+
+  @override
+  State<ModifierProfilPage> createState() => _ModifierProfilPageState();
+}
+
+class _ModifierProfilPageState extends State<ModifierProfilPage> {
+  late TextEditingController nomController;
+  late TextEditingController projetController;
+  late TextEditingController competencesController;
+  String? erreur;
+  bool chargement = false;
+
+  @override
+  void initState() {
+    super.initState();
+    nomController = TextEditingController(text: widget.profilActuel['nom'] ?? '');
+    projetController = TextEditingController(text: widget.profilActuel['projet'] ?? '');
+    competencesController = TextEditingController(
+      text: (widget.profilActuel['competences'] as List?)?.join(', ') ?? '',
+    );
+  }
+
+  Future<void> enregistrer() async {
+    setState(() {
+      chargement = true;
+      erreur = null;
+    });
+    try {
+      final response = await http.put(
+        Uri.parse('http://localhost:3000/profil/${widget.userId}'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "nom": nomController.text,
+          "projet": projetController.text,
+          "competences": competencesController.text
+              .split(',')
+              .map((c) => c.trim())
+              .where((c) => c.isNotEmpty)
+              .toList(),
+        }),
+      );
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      } else {
+        setState(() {
+          erreur = "Erreur lors de la mise à jour";
+          chargement = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        erreur = "Erreur de connexion : $e";
+        chargement = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Modifier le profil')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: nomController,
+              decoration: const InputDecoration(labelText: "Nom"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: projetController,
+              decoration: const InputDecoration(labelText: "Projet"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: competencesController,
+              decoration: const InputDecoration(labelText: "Compétences (séparées par des virgules)"),
+            ),
+            const SizedBox(height: 20),
+            if (erreur != null)
+              Text(erreur!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 10),
+            chargement
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: enregistrer,
+                    child: const Text("Enregistrer"),
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }
