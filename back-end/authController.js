@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const { charger, sauvegarder } = require('./storage');
 
-// Stockage simple en mémoire (à remplacer par une vraie base de données plus tard)
-let utilisateurs = [];
+let utilisateurs = charger('utilisateurs.json', []);
 
-// Route POST inscription
 router.post('/register', async (req, res) => {
   const { nom, email, motDePasse } = req.body;
 
@@ -21,11 +20,11 @@ router.post('/register', async (req, res) => {
   const motDePasseHash = await bcrypt.hash(motDePasse, 10);
   const utilisateur = { id: Date.now().toString(), nom, email, motDePasseHash };
   utilisateurs.push(utilisateur);
+  sauvegarder('utilisateurs.json', utilisateurs);
 
   res.status(201).json({ message: "Compte créé", id: utilisateur.id, nom, email });
 });
 
-// Route POST connexion
 router.post('/login', async (req, res) => {
   const { email, motDePasse } = req.body;
 
