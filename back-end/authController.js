@@ -29,6 +29,7 @@ router.post('/register', async (req, res) => {
     nom,
     projet: "",
     competences: [],
+    photoUrl: "",
     messages: [],
     notes: [],
   };
@@ -59,7 +60,6 @@ router.post('/login', async (req, res) => {
   });
 });
 
-// Réinitialisation simplifiée (pas d'envoi d'email - le nouveau mot de passe est renvoyé directement)
 router.post('/mot-de-passe-oublie', async (req, res) => {
   const { email } = req.body;
   const emailNormalise = (email || '').trim().toLowerCase();

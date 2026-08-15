@@ -7,6 +7,7 @@ let profils = charger('profils.json', {
     nom: "Ismaël",
     projet: "Madago",
     competences: ["JavaScript", "Flutter", "Node.js"],
+    photoUrl: "",
     messages: [],
     notes: [],
   },
@@ -28,10 +29,11 @@ router.put('/profil/:id', (req, res) => {
   if (!profil) {
     return res.status(404).json({ message: "Profil introuvable" });
   }
-  const { nom, projet, competences } = req.body;
+  const { nom, projet, competences, photoUrl } = req.body;
   profil.nom = nom || profil.nom;
   profil.projet = projet || profil.projet;
   profil.competences = competences || profil.competences;
+  if (photoUrl !== undefined) profil.photoUrl = photoUrl;
   sauvegarder('profils.json', profils);
   res.json({ message: "Profil mis à jour", profil });
 });

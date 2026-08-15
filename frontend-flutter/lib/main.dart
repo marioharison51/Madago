@@ -101,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
           context,
           PageRouteBuilder(
             transitionDuration: const Duration(milliseconds: 300),
-            pageBuilder: (_, animation, __) => MainScreen(userId: data['id']),
+            pageBuilder: (_, animation, __) => MainScreen(userId: data['id'], userNom: data['nom']),
             transitionsBuilder: (_, animation, __, child) =>
                 FadeTransition(opacity: animation, child: child),
           ),
@@ -439,7 +439,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
 class MainScreen extends StatefulWidget {
   final String userId;
-  const MainScreen({super.key, required this.userId});
+  final String userNom;
+  const MainScreen({super.key, required this.userId, required this.userNom});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -476,7 +477,7 @@ class _MainScreenState extends State<MainScreen> {
           index: selectedIndex,
           children: [
             ProfilTab(userId: widget.userId),
-            const ProjetsTab(),
+            ProjetsTab(userId: widget.userId, userNom: widget.userNom),
             const RechercheTab(),
             const EvenementsTab(),
             const ChatTab(),
@@ -550,6 +551,7 @@ class _ProfilTabState extends State<ProfilTab> {
   @override
   Widget build(BuildContext context) {
     final moyenne = profil?['moyenneNotes'];
+    final photoUrl = profil?['photoUrl'] as String?;
     if (erreur != null) {
       return Center(
         child: Padding(
@@ -578,7 +580,14 @@ class _ProfilTabState extends State<ProfilTab> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          const CircleAvatar(radius: 50, backgroundColor: Color(0xFF4F46E5), child: Icon(Icons.person, size: 50, color: Colors.white)),
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: const Color(0xFF4F46E5),
+            backgroundImage: (photoUrl != null && photoUrl.isNotEmpty) ? NetworkImage(photoUrl) : null,
+            child: (photoUrl == null || photoUrl.isEmpty)
+                ? const Icon(Icons.person, size: 50, color: Colors.white)
+                : null,
+          ),
           const SizedBox(height: 16),
           Text(profil!['nom'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
@@ -665,6 +674,7 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
   late TextEditingController nomController;
   late TextEditingController projetController;
   late TextEditingController competencesController;
+  late TextEditingController photoUrlController;
   String? erreur;
   bool chargement = false;
 
@@ -676,6 +686,7 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
     competencesController = TextEditingController(
       text: (widget.profilActuel['competences'] as List?)?.join(', ') ?? '',
     );
+    photoUrlController = TextEditingController(text: widget.profilActuel['photoUrl'] ?? '');
   }
 
   Future<void> enregistrer() async {
@@ -695,6 +706,7 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
               .map((c) => c.trim())
               .where((c) => c.isNotEmpty)
               .toList(),
+          "photoUrl": photoUrlController.text.trim(),
         }),
       );
       if (response.statusCode == 200) {
@@ -722,6 +734,23 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            if (photoUrlController.text.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundImage: NetworkImage(photoUrlController.text),
+                ),
+              ),
+            TextField(
+              controller: photoUrlController,
+              decoration: const InputDecoration(
+                labelText: "Lien de la photo de profil (URL)",
+                prefixIcon: Icon(Icons.image_outlined),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: nomController,
               decoration: const InputDecoration(
@@ -769,11 +798,15 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
 }
 
 class ProjetsTab extends StatefulWidget {
-  const ProjetsTab({super.key});
+  final String userId;
+  final String userNom;
+  const ProjetsTab({super.key, required this.userId, required this.userNom});
 
   @override
   State<ProjetsTab> createState() => _ProjetsTabState();
 }
+
+enum TriProjets { recent, ancien, alphabetique }
 
 class _ProjetsTabState extends State<ProjetsTab> {
   List<dynamic> projets = [];
@@ -781,6 +814,8 @@ class _ProjetsTabState extends State<ProjetsTab> {
   final descriptionController = TextEditingController();
   final besoinsController = TextEditingController();
   final githubController = TextEditingController();
+  final filtreController = TextEditingController();
+  TriProjets tri = TriProjets.recent;
 
   @override
   void initState() {
@@ -807,7 +842,8 @@ class _ProjetsTabState extends State<ProjetsTab> {
         "titre": titreController.text,
         "description": descriptionController.text,
         "besoins": besoinsController.text.split(',').map((b) => b.trim()).toList(),
-        "createur": "Ismaël",
+        "createur": widget.userNom,
+        "createurId": widget.userId,
         "githubUrl": githubController.text.isEmpty ? null : githubController.text,
       }),
     );
@@ -819,8 +855,32 @@ class _ProjetsTabState extends State<ProjetsTab> {
     fetchProjets();
   }
 
+  List<dynamic> get projetsFiltres {
+    var liste = List<dynamic>.from(projets);
+    if (filtreController.text.isNotEmpty) {
+      final motCle = filtreController.text.toLowerCase();
+      liste = liste.where((p) {
+        final besoins = (p['besoins'] as List).join(' ').toLowerCase();
+        return besoins.contains(motCle) || (p['titre'] as String).toLowerCase().contains(motCle);
+      }).toList();
+    }
+    switch (tri) {
+      case TriProjets.recent:
+        liste.sort((a, b) => (b['dateCreation'] ?? '').compareTo(a['dateCreation'] ?? ''));
+        break;
+      case TriProjets.ancien:
+        liste.sort((a, b) => (a['dateCreation'] ?? '').compareTo(b['dateCreation'] ?? ''));
+        break;
+      case TriProjets.alphabetique:
+        liste.sort((a, b) => (a['titre'] as String).compareTo(b['titre'] as String));
+        break;
+    }
+    return liste;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final liste = projetsFiltres;
     return Column(
       children: [
         Padding(
@@ -876,16 +936,44 @@ class _ProjetsTabState extends State<ProjetsTab> {
             ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: TextField(
+            controller: filtreController,
+            decoration: const InputDecoration(
+              labelText: "Filtrer par mot-clé ou besoin",
+              prefixIcon: Icon(Icons.filter_alt_outlined),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<TriProjets>(
+              segments: const [
+                ButtonSegment(value: TriProjets.recent, label: Text('Récents'), icon: Icon(Icons.south)),
+                ButtonSegment(value: TriProjets.ancien, label: Text('Anciens'), icon: Icon(Icons.north)),
+                ButtonSegment(value: TriProjets.alphabetique, label: Text('A-Z'), icon: Icon(Icons.sort_by_alpha)),
+              ],
+              selected: {tri},
+              onSelectionChanged: (nouveau) => setState(() => tri = nouveau.first),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
         Expanded(
-          child: projets.isEmpty
+          child: liste.isEmpty
               ? Center(
-                  child: Text("Aucun projet publié pour l'instant", style: TextStyle(color: Colors.grey.shade600)),
+                  child: Text("Aucun projet trouvé", style: TextStyle(color: Colors.grey.shade600)),
                 )
               : ListView.builder(
-                  itemCount: projets.length,
+                  itemCount: liste.length,
                   itemBuilder: (context, index) {
-                    final projet = projets[index];
-                    return ProjetCard(projet: projet);
+                    final projet = liste[index];
+                    return ProjetCard(projet: projet, currentUserId: widget.userId, currentUserNom: widget.userNom);
                   },
                 ),
         ),
@@ -896,7 +984,9 @@ class _ProjetsTabState extends State<ProjetsTab> {
 
 class ProjetCard extends StatefulWidget {
   final dynamic projet;
-  const ProjetCard({super.key, required this.projet});
+  final String currentUserId;
+  final String currentUserNom;
+  const ProjetCard({super.key, required this.projet, required this.currentUserId, required this.currentUserNom});
 
   @override
   State<ProjetCard> createState() => _ProjetCardState();
@@ -931,6 +1021,9 @@ class _ProjetCardState extends State<ProjetCard> {
   @override
   Widget build(BuildContext context) {
     final projet = widget.projet;
+    final createurId = projet['createurId'] as String?;
+    final peutContacter = createurId != null && createurId != widget.currentUserId;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Padding(
@@ -963,6 +1056,26 @@ class _ProjetCardState extends State<ProjetCard> {
                 const Icon(Icons.person_outline, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(projet['createur'], style: TextStyle(color: Colors.grey.shade600)),
+                if (peutContacter) ...[
+                  const Spacer(),
+                  TextButton.icon(
+                    icon: const Icon(Icons.mail_outline, size: 18),
+                    label: const Text("Contacter"),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => MessagePriveTab(
+                            userId: widget.currentUserId,
+                            userNom: widget.currentUserNom,
+                            autreId: createurId,
+                            autreNom: projet['createur'],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
             if (projet['githubUrl'] != null) ...[
@@ -986,6 +1099,127 @@ class _ProjetCardState extends State<ProjetCard> {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class MessagePriveTab extends StatefulWidget {
+  final String userId;
+  final String userNom;
+  final String autreId;
+  final String autreNom;
+  const MessagePriveTab({
+    super.key,
+    required this.userId,
+    required this.userNom,
+    required this.autreId,
+    required this.autreNom,
+  });
+
+  @override
+  State<MessagePriveTab> createState() => _MessagePriveTabState();
+}
+
+class _MessagePriveTabState extends State<MessagePriveTab> {
+  List<dynamic> messages = [];
+  final messageController = TextEditingController();
+  bool chargement = true;
+
+  @override
+  void initState() {
+    super.initState();
+    chargerMessages();
+  }
+
+  Future<void> chargerMessages() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/messages/${widget.userId}/${widget.autreId}'),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        messages = json.decode(response.body);
+        chargement = false;
+      });
+    } else {
+      setState(() => chargement = false);
+    }
+  }
+
+  Future<void> envoyer() async {
+    if (messageController.text.isEmpty) return;
+    await http.post(
+      Uri.parse('http://localhost:3000/messages'),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "expediteur": widget.userId,
+        "destinataire": widget.autreId,
+        "contenu": messageController.text,
+      }),
+    );
+    messageController.clear();
+    chargerMessages();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Discussion avec ${widget.autreNom}")),
+      body: Column(
+        children: [
+          Expanded(
+            child: chargement
+                ? const Center(child: CircularProgressIndicator())
+                : messages.isEmpty
+                    ? Center(
+                        child: Text("Aucun message, lance la discussion", style: TextStyle(color: Colors.grey.shade600)),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = messages[index];
+                          final estMoi = msg['expediteur'] == widget.userId;
+                          return Align(
+                            alignment: estMoi ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                              decoration: BoxDecoration(
+                                color: estMoi ? const Color(0xFF4F46E5) : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+                              ),
+                              child: Text(
+                                msg['contenu'],
+                                style: TextStyle(color: estMoi ? Colors.white : Colors.black87),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: messageController,
+                    decoration: const InputDecoration(
+                      labelText: "Ton message",
+                      prefixIcon: Icon(Icons.chat_bubble_outline),
+                    ),
+                    onSubmitted: (_) => envoyer(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(icon: const Icon(Icons.send), onPressed: envoyer),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
