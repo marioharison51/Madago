@@ -43,7 +43,7 @@ router.get('/profils/recherche', (req, res) => {
   }
   const resultats = Object.entries(profils)
     .filter(([id, profil]) =>
-      profil.competences.some((c) => c.toLowerCase().includes(competence.toLowerCase()))
+      (profil.competences || []).some((c) => c.toLowerCase().includes(competence.toLowerCase()))
     )
     .map(([id, profil]) => ({ id, nom: profil.nom, competences: profil.competences }));
   res.json(resultats);

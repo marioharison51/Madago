@@ -47,10 +47,11 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
       if (response.statusCode == 200) {
+        final data = json.decode(response.body);
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const ProfilPage()),
+          MaterialPageRoute(builder: (_) => ProfilPage(userId: data['id'])),
         );
       } else {
         final data = json.decode(response.body);
@@ -218,7 +219,8 @@ class _RegisterPageState extends State<RegisterPage> {
 }
 
 class ProfilPage extends StatefulWidget {
-  const ProfilPage({super.key});
+  final String userId;
+  const ProfilPage({super.key, required this.userId});
 
   @override
   State<ProfilPage> createState() => _ProfilPageState();
@@ -237,7 +239,7 @@ class _ProfilPageState extends State<ProfilPage> {
   Future<void> fetchProfil() async {
     try {
       final response = await http
-          .get(Uri.parse('http://localhost:3000/profil/ismael'))
+          .get(Uri.parse('http://localhost:3000/profil/${widget.userId}'))
           .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         setState(() {
@@ -258,7 +260,7 @@ class _ProfilPageState extends State<ProfilPage> {
 
   Future<void> noterProfil(int note) async {
     await http.post(
-      Uri.parse('http://localhost:3000/profil/ismael/noter'),
+      Uri.parse('http://localhost:3000/profil/${widget.userId}/noter'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({"note": note}),
     );
@@ -294,7 +296,7 @@ class _ProfilPageState extends State<ProfilPage> {
                         const CircleAvatar(radius: 50, backgroundColor: Colors.blueAccent),
                         const SizedBox(height: 20),
                         Text('Nom : ${profil!['nom']}'),
-                        Text('Projet : ${profil!['projet']}'),
+                        Text('Projet : ${(profil!['projet'] as String).isEmpty ? "Pas encore renseigné" : profil!['projet']}'),
                         const SizedBox(height: 10),
                         Text(
                           moyenne == null

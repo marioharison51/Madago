@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { charger, sauvegarder } = require('./storage');
 
 let utilisateurs = charger('utilisateurs.json', []);
+let profils = charger('profils.json', {});
 
 router.post('/register', async (req, res) => {
   const { nom, email, motDePasse } = req.body;
@@ -19,11 +20,22 @@ router.post('/register', async (req, res) => {
   }
 
   const motDePasseHash = await bcrypt.hash(motDePasse, 10);
-  const utilisateur = { id: Date.now().toString(), nom, email: emailNormalise, motDePasseHash };
+  const id = Date.now().toString();
+  const utilisateur = { id, nom, email: emailNormalise, motDePasseHash };
   utilisateurs.push(utilisateur);
   sauvegarder('utilisateurs.json', utilisateurs);
 
-  res.status(201).json({ message: "Compte créé", id: utilisateur.id, nom, email: emailNormalise });
+  // Créer automatiquement un profil vide lié à ce compte
+  profils[id] = {
+    nom,
+    projet: "",
+    competences: [],
+    messages: [],
+    notes: [],
+  };
+  sauvegarder('profils.json', profils);
+
+  res.status(201).json({ message: "Compte créé", id, nom, email: emailNormalise });
 });
 
 router.post('/login', async (req, res) => {
@@ -40,12 +52,12 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ message: "Email ou mot de passe incorrect" });
   }
 
-  res.json({ message: "Connexion réussie", id: utilisateur.id, nom: utilisateur.nom, email: utilisateur.email });
-});
-
-// Route temporaire de debug - à retirer ensuite
-router.get('/debug/users', (req, res) => {
-  res.json(utilisateurs.map((u) => ({ id: u.id, nom: u.nom, email: u.email })));
+  res.json({
+    message: "Connexion réussie",
+    id: utilisateur.id,
+    nom: utilisateur.nom,
+    email: utilisateur.email,
+  });
 });
 
 module.exports = router;
