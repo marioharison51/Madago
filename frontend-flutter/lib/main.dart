@@ -154,6 +154,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
   final titreController = TextEditingController();
   final descriptionController = TextEditingController();
   final besoinsController = TextEditingController();
+  final githubController = TextEditingController();
 
   @override
   void initState() {
@@ -181,12 +182,14 @@ class _ProjetsPageState extends State<ProjetsPage> {
         "description": descriptionController.text,
         "besoins": besoinsController.text.split(',').map((b) => b.trim()).toList(),
         "createur": "Ismaël",
+        "githubUrl": githubController.text.isEmpty ? null : githubController.text,
       }),
     );
 
     titreController.clear();
     descriptionController.clear();
     besoinsController.clear();
+    githubController.clear();
     fetchProjets();
   }
 
@@ -212,6 +215,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
                   controller: besoinsController,
                   decoration: const InputDecoration(labelText: "Besoins (séparés par des virgules)"),
                 ),
+                TextField(
+                  controller: githubController,
+                  decoration: const InputDecoration(labelText: "Lien GitHub (optionnel)"),
+                ),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: publierProjet,
@@ -226,20 +233,81 @@ class _ProjetsPageState extends State<ProjetsPage> {
               itemCount: projets.length,
               itemBuilder: (context, index) {
                 final projet = projets[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: ListTile(
-                    title: Text(projet['titre']),
-                    subtitle: Text(
-                      "${projet['description']}\nBesoins : ${(projet['besoins'] as List).join(', ')}\nPar : ${projet['createur']}",
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
+                return ProjetCard(projet: projet);
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class ProjetCard extends StatefulWidget {
+  final dynamic projet;
+  const ProjetCard({super.key, required this.projet});
+
+  @override
+  State<ProjetCard> createState() => _ProjetCardState();
+}
+
+class _ProjetCardState extends State<ProjetCard> {
+  Map<String, dynamic>? infosGithub;
+  bool chargement = false;
+  String? erreur;
+
+  Future<void> chargerInfosGithub() async {
+    setState(() {
+      chargement = true;
+      erreur = null;
+    });
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/projets/${widget.projet['id']}/github'),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        infosGithub = json.decode(response.body);
+        chargement = false;
+      });
+    } else {
+      setState(() {
+        erreur = "Impossible de récupérer les infos GitHub";
+        chargement = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final projet = widget.projet;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(projet['titre'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(projet['description']),
+            Text("Besoins : ${(projet['besoins'] as List).join(', ')}"),
+            Text("Par : ${projet['createur']}"),
+            if (projet['githubUrl'] != null) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                icon: const Icon(Icons.code),
+                label: const Text("Voir les infos GitHub"),
+                onPressed: chargement ? null : chargerInfosGithub,
+              ),
+              if (chargement) const CircularProgressIndicator(),
+              if (erreur != null) Text(erreur!, style: const TextStyle(color: Colors.red)),
+              if (infosGithub != null) ...[
+                Text("⭐ ${infosGithub!['etoiles']} — ${infosGithub!['langagePrincipal'] ?? 'N/A'}"),
+                Text("Dernière mise à jour : ${infosGithub!['derniereMaj']}"),
+              ],
+            ],
+          ],
+        ),
       ),
     );
   }
