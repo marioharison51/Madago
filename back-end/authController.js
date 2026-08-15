@@ -12,23 +12,25 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: "Nom, email et mot de passe requis" });
   }
 
-  const existe = utilisateurs.find((u) => u.email === email);
+  const emailNormalise = email.trim().toLowerCase();
+  const existe = utilisateurs.find((u) => u.email === emailNormalise);
   if (existe) {
     return res.status(409).json({ message: "Un compte existe déjà avec cet email" });
   }
 
   const motDePasseHash = await bcrypt.hash(motDePasse, 10);
-  const utilisateur = { id: Date.now().toString(), nom, email, motDePasseHash };
+  const utilisateur = { id: Date.now().toString(), nom, email: emailNormalise, motDePasseHash };
   utilisateurs.push(utilisateur);
   sauvegarder('utilisateurs.json', utilisateurs);
 
-  res.status(201).json({ message: "Compte créé", id: utilisateur.id, nom, email });
+  res.status(201).json({ message: "Compte créé", id: utilisateur.id, nom, email: emailNormalise });
 });
 
 router.post('/login', async (req, res) => {
   const { email, motDePasse } = req.body;
 
-  const utilisateur = utilisateurs.find((u) => u.email === email);
+  const emailNormalise = (email || '').trim().toLowerCase();
+  const utilisateur = utilisateurs.find((u) => u.email === emailNormalise);
   if (!utilisateur) {
     return res.status(401).json({ message: "Email ou mot de passe incorrect" });
   }
@@ -39,6 +41,11 @@ router.post('/login', async (req, res) => {
   }
 
   res.json({ message: "Connexion réussie", id: utilisateur.id, nom: utilisateur.nom, email: utilisateur.email });
+});
+
+// Route temporaire de debug - à retirer ensuite
+router.get('/debug/users', (req, res) => {
+  res.json(utilisateurs.map((u) => ({ id: u.id, nom: u.nom, email: u.email })));
 });
 
 module.exports = router;
