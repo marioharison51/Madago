@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
         Uri.parse('http://localhost:3000/login'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
-          "email": emailController.text,
+          "email": emailController.text.trim(),
           "motDePasse": motDePasseController.text,
         }),
       );
@@ -81,12 +81,17 @@ class _LoginPageState extends State<LoginPage> {
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: "Email"),
+              keyboardType: TextInputType.emailAddress,
+              textCapitalization: TextCapitalization.none,
+              autocorrect: false,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: motDePasseController,
               decoration: const InputDecoration(labelText: "Mot de passe"),
               obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
             ),
             const SizedBox(height: 20),
             if (erreur != null)
@@ -141,7 +146,7 @@ class _RegisterPageState extends State<RegisterPage> {
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "nom": nomController.text,
-          "email": emailController.text,
+          "email": emailController.text.trim(),
           "motDePasse": motDePasseController.text,
         }),
       );
@@ -183,12 +188,17 @@ class _RegisterPageState extends State<RegisterPage> {
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: "Email"),
+              keyboardType: TextInputType.emailAddress,
+              textCapitalization: TextCapitalization.none,
+              autocorrect: false,
             ),
             const SizedBox(height: 12),
             TextField(
               controller: motDePasseController,
               decoration: const InputDecoration(labelText: "Mot de passe"),
               obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
             ),
             const SizedBox(height: 20),
             if (erreur != null)
