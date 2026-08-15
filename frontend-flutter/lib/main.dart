@@ -27,6 +27,7 @@ class ProfilPage extends StatefulWidget {
 
 class _ProfilPageState extends State<ProfilPage> {
   Map<String, dynamic>? profil;
+  String? erreur;
 
   @override
   void initState() {
@@ -35,10 +36,23 @@ class _ProfilPageState extends State<ProfilPage> {
   }
 
   Future<void> fetchProfil() async {
-    final response = await http.get(Uri.parse('http://localhost:3000/profil/ismael'));
-    if (response.statusCode == 200) {
+    try {
+      final response = await http
+          .get(Uri.parse('http://localhost:3000/profil/ismael'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        setState(() {
+          profil = json.decode(response.body);
+          erreur = null;
+        });
+      } else {
+        setState(() {
+          erreur = "Erreur serveur : ${response.statusCode}";
+        });
+      }
+    } catch (e) {
       setState(() {
-        profil = json.decode(response.body);
+        erreur = "Erreur de connexion : $e";
       });
     }
   }
@@ -57,87 +71,87 @@ class _ProfilPageState extends State<ProfilPage> {
     final moyenne = profil?['moyenneNotes'];
     return Scaffold(
       appBar: AppBar(title: const Text('Profil utilisateur')),
-      body: profil == null
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: erreur != null
+          ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircleAvatar(radius: 50, backgroundColor: Colors.blueAccent),
-                    const SizedBox(height: 20),
-                    Text('Nom : ${profil!['nom']}'),
-                    Text('Projet : ${profil!['projet']}'),
-                    const SizedBox(height: 10),
-                    Text(
-                      moyenne == null
-                          ? 'Pas encore de note'
-                          : 'Note moyenne : ${moyenne.toStringAsFixed(1)} / 5 (${(profil!['notes'] as List).length} avis)',
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (i) {
-                        return IconButton(
-                          icon: const Icon(Icons.star, color: Colors.amber),
-                          onPressed: () => noterProfil(i + 1),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        // action pour modifier le profil
-                      },
-                      child: const Text('Modifier le profil'),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ProjetsPage()),
-                        );
-                      },
-                      child: const Text('Voir les projets'),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const RecherchePage()),
-                        );
-                      },
-                      child: const Text('Rechercher par compétences'),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const EvenementsPage()),
-                        );
-                      },
-                      child: const Text('Événements et ateliers'),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ChatPage()),
-                        );
-                      },
-                      child: const Text('Chat en temps réel'),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('Messages :'),
-                    ...profil!['messages'].map<Widget>((msg) => Text('${msg['sender']}: ${msg['text']}')).toList(),
+                    Text(erreur!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(onPressed: fetchProfil, child: const Text("Réessayer")),
                   ],
                 ),
               ),
-            ),
+            )
+          : profil == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        const CircleAvatar(radius: 50, backgroundColor: Colors.blueAccent),
+                        const SizedBox(height: 20),
+                        Text('Nom : ${profil!['nom']}'),
+                        Text('Projet : ${profil!['projet']}'),
+                        const SizedBox(height: 10),
+                        Text(
+                          moyenne == null
+                              ? 'Pas encore de note'
+                              : 'Note moyenne : ${moyenne.toStringAsFixed(1)} / 5 (${(profil!['notes'] as List).length} avis)',
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (i) {
+                            return IconButton(
+                              icon: const Icon(Icons.star, color: Colors.amber),
+                              onPressed: () => noterProfil(i + 1),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {},
+                          child: const Text('Modifier le profil'),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjetsPage()));
+                          },
+                          child: const Text('Voir les projets'),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const RecherchePage()));
+                          },
+                          child: const Text('Rechercher par compétences'),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const EvenementsPage()));
+                          },
+                          child: const Text('Événements et ateliers'),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatPage()));
+                          },
+                          child: const Text('Chat en temps réel'),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text('Messages :'),
+                        ...profil!['messages'].map<Widget>((msg) => Text('${msg['sender']}: ${msg['text']}')).toList(),
+                      ],
+                    ),
+                  ),
+                ),
     );
   }
 }
