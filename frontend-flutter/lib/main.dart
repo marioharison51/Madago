@@ -99,7 +99,12 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => MainScreen(userId: data['id'])),
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 300),
+            pageBuilder: (_, animation, __) => MainScreen(userId: data['id']),
+            transitionsBuilder: (_, animation, __, child) =>
+                FadeTransition(opacity: animation, child: child),
+          ),
         );
       } else {
         final data = json.decode(response.body);
@@ -119,69 +124,87 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Connexion')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Madago', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 32),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
-              keyboardType: TextInputType.emailAddress,
-              textCapitalization: TextCapitalization.none,
-              autocorrect: false,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: motDePasseController,
-              decoration: InputDecoration(
-                labelText: "Mot de passe",
-                suffixIcon: IconButton(
-                  icon: Icon(motDePasseVisible ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => motDePasseVisible = !motDePasseVisible),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.groups_rounded, size: 64, color: Color(0xFF4F46E5)),
+              const SizedBox(height: 12),
+              const Text('Madago', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(
+                'Connecte-toi pour continuer',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 32),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: "Email",
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                textCapitalization: TextCapitalization.none,
+                autocorrect: false,
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: motDePasseController,
+                decoration: InputDecoration(
+                  labelText: "Mot de passe",
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(motDePasseVisible ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => motDePasseVisible = !motDePasseVisible),
+                  ),
+                ),
+                obscureText: !motDePasseVisible,
+                autocorrect: false,
+                enableSuggestions: false,
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                    );
+                  },
+                  child: const Text("Mot de passe oublié ?"),
                 ),
               ),
-              obscureText: !motDePasseVisible,
-              autocorrect: false,
-              enableSuggestions: false,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
+              const SizedBox(height: 12),
+              if (erreur != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(erreur!, style: const TextStyle(color: Colors.red)),
+                ),
+              chargement
+                  ? const CircularProgressIndicator()
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: seConnecter,
+                        icon: const Icon(Icons.login),
+                        label: const Text("Se connecter"),
+                      ),
+                    ),
+              const SizedBox(height: 16),
+              TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                    MaterialPageRoute(builder: (_) => const RegisterPage()),
                   );
                 },
-                child: const Text("Mot de passe oublié ?"),
+                child: const Text("Pas encore de compte ? S'inscrire"),
               ),
-            ),
-            const SizedBox(height: 12),
-            if (erreur != null)
-              Text(erreur!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 10),
-            chargement
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: seConnecter,
-                    child: const Text("Se connecter"),
-                  ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RegisterPage()),
-                );
-              },
-              child: const Text("Pas encore de compte ? S'inscrire"),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -245,6 +268,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Icon(Icons.lock_reset, size: 48, color: Color(0xFF4F46E5)),
+            const SizedBox(height: 16),
             const Text(
               "Entre ton email, un nouveau mot de passe temporaire te sera affiché ici.",
               textAlign: TextAlign.center,
@@ -252,7 +277,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             const SizedBox(height: 20),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
+              decoration: const InputDecoration(
+                labelText: "Email",
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
               keyboardType: TextInputType.emailAddress,
               textCapitalization: TextCapitalization.none,
               autocorrect: false,
@@ -261,20 +289,27 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             if (message != null)
               Text(message!, style: const TextStyle(color: Colors.red)),
             if (succes && nouveauMotDePasse != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  "Nouveau mot de passe : $nouveauMotDePasse\nConnecte-toi avec celui-ci.",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+              Card(
+                color: const Color(0xFFEEF2FF),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    "Nouveau mot de passe : $nouveauMotDePasse\nConnecte-toi avec celui-ci.",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             chargement
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: reinitialiser,
-                    child: const Text("Réinitialiser"),
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: reinitialiser,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text("Réinitialiser"),
+                    ),
                   ),
           ],
         ),
@@ -339,28 +374,37 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Inscription')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Icon(Icons.person_add_alt_1, size: 48, color: Color(0xFF4F46E5)),
+            const SizedBox(height: 20),
             TextField(
               controller: nomController,
-              decoration: const InputDecoration(labelText: "Nom"),
+              decoration: const InputDecoration(
+                labelText: "Nom",
+                prefixIcon: Icon(Icons.person_outline),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: "Email"),
+              decoration: const InputDecoration(
+                labelText: "Email",
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
               keyboardType: TextInputType.emailAddress,
               textCapitalization: TextCapitalization.none,
               autocorrect: false,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             TextField(
               controller: motDePasseController,
               decoration: InputDecoration(
                 labelText: "Mot de passe",
+                prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   icon: Icon(motDePasseVisible ? Icons.visibility_off : Icons.visibility),
                   onPressed: () => setState(() => motDePasseVisible = !motDePasseVisible),
@@ -372,13 +416,19 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 20),
             if (erreur != null)
-              Text(erreur!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(erreur!, style: const TextStyle(color: Colors.red)),
+              ),
             chargement
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: sInscrire,
-                    child: const Text("S'inscrire"),
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: sInscrire,
+                      icon: const Icon(Icons.check),
+                      label: const Text("S'inscrire"),
+                    ),
                   ),
           ],
         ),
@@ -408,6 +458,7 @@ class _MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Se déconnecter',
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
@@ -418,25 +469,29 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: selectedIndex,
-        children: [
-          ProfilTab(userId: widget.userId),
-          const ProjetsTab(),
-          const RechercheTab(),
-          const EvenementsTab(),
-          const ChatTab(),
-        ],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: IndexedStack(
+          key: ValueKey(selectedIndex),
+          index: selectedIndex,
+          children: [
+            ProfilTab(userId: widget.userId),
+            const ProjetsTab(),
+            const RechercheTab(),
+            const EvenementsTab(),
+            const ChatTab(),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => setState(() => selectedIndex = index),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.person), label: 'Profil'),
-          NavigationDestination(icon: Icon(Icons.work), label: 'Projets'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
+          NavigationDestination(icon: Icon(Icons.work_outline), selectedIcon: Icon(Icons.work), label: 'Projets'),
           NavigationDestination(icon: Icon(Icons.search), label: 'Recherche'),
-          NavigationDestination(icon: Icon(Icons.event), label: 'Événements'),
-          NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
+          NavigationDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event), label: 'Événements'),
+          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Chat'),
         ],
       ),
     );
@@ -502,9 +557,15 @@ class _ProfilTabState extends State<ProfilTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
               Text(erreur!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: fetchProfil, child: const Text("Réessayer")),
+              ElevatedButton.icon(
+                onPressed: fetchProfil,
+                icon: const Icon(Icons.refresh),
+                label: const Text("Réessayer"),
+              ),
             ],
           ),
         ),
@@ -514,32 +575,47 @@ class _ProfilTabState extends State<ProfilTab> {
       return const Center(child: CircularProgressIndicator());
     }
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const CircleAvatar(radius: 50, backgroundColor: Colors.blueAccent),
-            const SizedBox(height: 20),
-            Text('Nom : ${profil!['nom']}'),
-            Text('Projet : ${(profil!['projet'] as String).isEmpty ? "Pas encore renseigné" : profil!['projet']}'),
-            const SizedBox(height: 10),
-            Text(
-              moyenne == null
-                  ? 'Pas encore de note'
-                  : 'Note moyenne : ${moyenne.toStringAsFixed(1)} / 5 (${(profil!['notes'] as List).length} avis)',
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          const CircleAvatar(radius: 50, backgroundColor: Color(0xFF4F46E5), child: Icon(Icons.person, size: 50, color: Colors.white)),
+          const SizedBox(height: 16),
+          Text(profil!['nom'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(
+            (profil!['projet'] as String).isEmpty ? "Pas encore de projet renseigné" : profil!['projet'],
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Text(
+                    moyenne == null
+                        ? 'Pas encore de note'
+                        : '${moyenne.toStringAsFixed(1)} / 5 (${(profil!['notes'] as List).length} avis)',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) {
+                      return IconButton(
+                        icon: const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
+                        onPressed: () => noterProfil(i + 1),
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (i) {
-                return IconButton(
-                  icon: const Icon(Icons.star, color: Colors.amber),
-                  onPressed: () => noterProfil(i + 1),
-                );
-              }),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
               onPressed: () async {
                 final resultat = await Navigator.push(
                   context,
@@ -551,13 +627,26 @@ class _ProfilTabState extends State<ProfilTab> {
                   fetchProfil();
                 }
               },
-              child: const Text('Modifier le profil'),
+              icon: const Icon(Icons.edit),
+              label: const Text('Modifier le profil'),
             ),
-            const SizedBox(height: 20),
-            const Text('Messages :'),
-            ...profil!['messages'].map<Widget>((msg) => Text('${msg['sender']}: ${msg['text']}')).toList(),
+          ),
+          const SizedBox(height: 20),
+          if ((profil!['messages'] as List).isNotEmpty) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Messages', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            const SizedBox(height: 8),
+            ...profil!['messages'].map<Widget>((msg) => Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.message_outlined),
+                    title: Text(msg['sender']),
+                    subtitle: Text(msg['text']),
+                  ),
+                )),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -629,33 +718,48 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Modifier le profil')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: nomController,
-              decoration: const InputDecoration(labelText: "Nom"),
+              decoration: const InputDecoration(
+                labelText: "Nom",
+                prefixIcon: Icon(Icons.person_outline),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: projetController,
-              decoration: const InputDecoration(labelText: "Projet"),
+              decoration: const InputDecoration(
+                labelText: "Projet",
+                prefixIcon: Icon(Icons.work_outline),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: competencesController,
-              decoration: const InputDecoration(labelText: "Compétences (séparées par des virgules)"),
+              decoration: const InputDecoration(
+                labelText: "Compétences (séparées par des virgules)",
+                prefixIcon: Icon(Icons.star_outline),
+              ),
             ),
             const SizedBox(height: 20),
             if (erreur != null)
-              Text(erreur!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(erreur!, style: const TextStyle(color: Colors.red)),
+              ),
             chargement
                 ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: enregistrer,
-                    child: const Text("Enregistrer"),
+                : SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: enregistrer,
+                      icon: const Icon(Icons.save),
+                      label: const Text("Enregistrer"),
+                    ),
                   ),
           ],
         ),
@@ -721,41 +825,69 @@ class _ProjetsTabState extends State<ProjetsTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(12.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: titreController,
-                decoration: const InputDecoration(labelText: "Titre du projet"),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: titreController,
+                    decoration: const InputDecoration(
+                      labelText: "Titre du projet",
+                      prefixIcon: Icon(Icons.title),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: "Description",
+                      prefixIcon: Icon(Icons.description_outlined),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: besoinsController,
+                    decoration: const InputDecoration(
+                      labelText: "Besoins (séparés par des virgules)",
+                      prefixIcon: Icon(Icons.handyman_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: githubController,
+                    decoration: const InputDecoration(
+                      labelText: "Lien GitHub (optionnel)",
+                      prefixIcon: Icon(Icons.code),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: publierProjet,
+                      icon: const Icon(Icons.publish),
+                      label: const Text("Publier le projet"),
+                    ),
+                  ),
+                ],
               ),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: "Description"),
-              ),
-              TextField(
-                controller: besoinsController,
-                decoration: const InputDecoration(labelText: "Besoins (séparés par des virgules)"),
-              ),
-              TextField(
-                controller: githubController,
-                decoration: const InputDecoration(labelText: "Lien GitHub (optionnel)"),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: publierProjet,
-                child: const Text("Publier le projet"),
-              ),
-            ],
+            ),
           ),
         ),
-        const Divider(),
         Expanded(
-          child: ListView.builder(
-            itemCount: projets.length,
-            itemBuilder: (context, index) {
-              final projet = projets[index];
-              return ProjetCard(projet: projet);
-            },
-          ),
+          child: projets.isEmpty
+              ? Center(
+                  child: Text("Aucun projet publié pour l'instant", style: TextStyle(color: Colors.grey.shade600)),
+                )
+              : ListView.builder(
+                  itemCount: projets.length,
+                  itemBuilder: (context, index) {
+                    final projet = projets[index];
+                    return ProjetCard(projet: projet);
+                  },
+                ),
         ),
       ],
     );
@@ -802,15 +934,37 @@ class _ProjetCardState extends State<ProjetCard> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(projet['titre'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.rocket_launch_outlined, color: Color(0xFF4F46E5)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(projet['titre'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(projet['description']),
-            Text("Besoins : ${(projet['besoins'] as List).join(', ')}"),
-            Text("Par : ${projet['createur']}"),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: (projet['besoins'] as List)
+                  .map<Widget>((b) => Chip(label: Text(b), visualDensity: VisualDensity.compact))
+                  .toList(),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(projet['createur'], style: TextStyle(color: Colors.grey.shade600)),
+              ],
+            ),
             if (projet['githubUrl'] != null) ...[
               const SizedBox(height: 8),
               TextButton.icon(
@@ -818,11 +972,16 @@ class _ProjetCardState extends State<ProjetCard> {
                 label: const Text("Voir les infos GitHub"),
                 onPressed: chargement ? null : chargerInfosGithub,
               ),
-              if (chargement) const CircularProgressIndicator(),
+              if (chargement) const LinearProgressIndicator(),
               if (erreur != null) Text(erreur!, style: const TextStyle(color: Colors.red)),
               if (infosGithub != null) ...[
-                Text("⭐ ${infosGithub!['etoiles']} — ${infosGithub!['langagePrincipal'] ?? 'N/A'}"),
-                Text("Dernière mise à jour : ${infosGithub!['derniereMaj']}"),
+                Row(
+                  children: [
+                    const Icon(Icons.star, size: 16, color: Colors.amber),
+                    Text(" ${infosGithub!['etoiles']} — ${infosGithub!['langagePrincipal'] ?? 'N/A'}"),
+                  ],
+                ),
+                Text("Dernière mise à jour : ${infosGithub!['derniereMaj']}", style: const TextStyle(fontSize: 12)),
               ],
             ],
           ],
@@ -866,24 +1025,37 @@ class _RechercheTabState extends State<RechercheTab> {
               Expanded(
                 child: TextField(
                   controller: competenceController,
-                  decoration: const InputDecoration(labelText: "Compétence (ex: Flutter)"),
+                  decoration: const InputDecoration(
+                    labelText: "Compétence (ex: Flutter)",
+                    prefixIcon: Icon(Icons.psychology_outlined),
+                  ),
+                  onSubmitted: (_) => rechercher(),
                 ),
               ),
-              IconButton(icon: const Icon(Icons.search), onPressed: rechercher),
+              const SizedBox(width: 8),
+              IconButton.filled(icon: const Icon(Icons.search), onPressed: rechercher),
             ],
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            itemCount: resultats.length,
-            itemBuilder: (context, index) {
-              final profil = resultats[index];
-              return ListTile(
-                title: Text(profil['nom']),
-                subtitle: Text((profil['competences'] as List).join(', ')),
-              );
-            },
-          ),
+          child: resultats.isEmpty
+              ? Center(
+                  child: Text("Recherche un profil par compétence", style: TextStyle(color: Colors.grey.shade600)),
+                )
+              : ListView.builder(
+                  itemCount: resultats.length,
+                  itemBuilder: (context, index) {
+                    final profil = resultats[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: ListTile(
+                        leading: const CircleAvatar(backgroundColor: Color(0xFF4F46E5), child: Icon(Icons.person, color: Colors.white)),
+                        title: Text(profil['nom']),
+                        subtitle: Text((profil['competences'] as List).join(', ')),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -943,45 +1115,70 @@ class _EvenementsTabState extends State<EvenementsTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(12.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: nomController,
-                decoration: const InputDecoration(labelText: "Nom de l'événement"),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: nomController,
+                    decoration: const InputDecoration(
+                      labelText: "Nom de l'événement",
+                      prefixIcon: Icon(Icons.event_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: dateController,
+                    decoration: const InputDecoration(
+                      labelText: "Date (jj/mm/aaaa)",
+                      prefixIcon: Icon(Icons.calendar_today_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: lieuController,
+                    decoration: const InputDecoration(
+                      labelText: "Lieu",
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: creerEvenement,
+                      icon: const Icon(Icons.add),
+                      label: const Text("Créer l'événement"),
+                    ),
+                  ),
+                ],
               ),
-              TextField(
-                controller: dateController,
-                decoration: const InputDecoration(labelText: "Date (jj/mm/aaaa)"),
-              ),
-              TextField(
-                controller: lieuController,
-                decoration: const InputDecoration(labelText: "Lieu"),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: creerEvenement,
-                child: const Text("Créer l'événement"),
-              ),
-            ],
+            ),
           ),
         ),
-        const Divider(),
         Expanded(
-          child: ListView.builder(
-            itemCount: evenements.length,
-            itemBuilder: (context, index) {
-              final evenement = evenements[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  title: Text(evenement['nom']),
-                  subtitle: Text(
-                    "${evenement['date']} — ${evenement['lieu']}\nParticipants : ${(evenement['participants'] as List).length}",
-                  ),
+          child: evenements.isEmpty
+              ? Center(
+                  child: Text("Aucun événement pour l'instant", style: TextStyle(color: Colors.grey.shade600)),
+                )
+              : ListView.builder(
+                  itemCount: evenements.length,
+                  itemBuilder: (context, index) {
+                    final evenement = evenements[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: ListTile(
+                        leading: const Icon(Icons.event, color: Color(0xFF4F46E5)),
+                        title: Text(evenement['nom']),
+                        subtitle: Text(
+                          "${evenement['date']} — ${evenement['lieu']}\n${(evenement['participants'] as List).length} participant(s)",
+                        ),
+                        isThreeLine: true,
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -1040,12 +1237,27 @@ class _ChatTabState extends State<ChatTab> {
     return Column(
       children: [
         Expanded(
-          child: ListView.builder(
-            itemCount: messages.length,
-            itemBuilder: (context, index) => ListTile(
-              title: Text(messages[index]),
-            ),
-          ),
+          child: messages.isEmpty
+              ? Center(
+                  child: Text("Aucun message pour l'instant", style: TextStyle(color: Colors.grey.shade600)),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) => Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+                      ),
+                      child: Text(messages[index]),
+                    ),
+                  ),
+                ),
         ),
         Padding(
           padding: const EdgeInsets.all(12.0),
@@ -1054,10 +1266,15 @@ class _ChatTabState extends State<ChatTab> {
               Expanded(
                 child: TextField(
                   controller: messageController,
-                  decoration: const InputDecoration(labelText: "Ton message"),
+                  decoration: const InputDecoration(
+                    labelText: "Ton message",
+                    prefixIcon: Icon(Icons.chat_bubble_outline),
+                  ),
+                  onSubmitted: (_) => envoyerMessage(),
                 ),
               ),
-              IconButton(icon: const Icon(Icons.send), onPressed: envoyerMessage),
+              const SizedBox(width: 8),
+              IconButton.filled(icon: const Icon(Icons.send), onPressed: envoyerMessage),
             ],
           ),
         ),
