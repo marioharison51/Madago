@@ -25,7 +25,6 @@ router.post('/register', async (req, res) => {
   utilisateurs.push(utilisateur);
   sauvegarder('utilisateurs.json', utilisateurs);
 
-  // Créer automatiquement un profil vide lié à ce compte
   profils[id] = {
     nom,
     projet: "",
@@ -58,6 +57,20 @@ router.post('/login', async (req, res) => {
     nom: utilisateur.nom,
     email: utilisateur.email,
   });
+});
+
+// Réinitialisation simplifiée (pas d'envoi d'email - le nouveau mot de passe est renvoyé directement)
+router.post('/mot-de-passe-oublie', async (req, res) => {
+  const { email } = req.body;
+  const emailNormalise = (email || '').trim().toLowerCase();
+  const utilisateur = utilisateurs.find((u) => u.email === emailNormalise);
+  if (!utilisateur) {
+    return res.status(404).json({ message: "Aucun compte trouvé avec cet email" });
+  }
+  const nouveauMotDePasse = Math.random().toString(36).slice(-8);
+  utilisateur.motDePasseHash = await bcrypt.hash(nouveauMotDePasse, 10);
+  sauvegarder('utilisateurs.json', utilisateurs);
+  res.json({ message: "Mot de passe réinitialisé", nouveauMotDePasse });
 });
 
 module.exports = router;
