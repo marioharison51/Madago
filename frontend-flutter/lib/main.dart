@@ -48,7 +48,7 @@ class MadagoApp extends StatelessWidget {
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           elevation: 2,
           shadowColor: Colors.black12,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
