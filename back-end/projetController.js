@@ -5,7 +5,7 @@ const { charger, sauvegarder } = require('./storage');
 let projets = charger('projets.json', []);
 
 router.post('/projets', (req, res) => {
-  const { titre, description, besoins, createur, githubUrl } = req.body;
+  const { titre, description, besoins, createur, createurId, githubUrl } = req.body;
 
   if (!titre || !description || !createur) {
     return res.status(400).json({ message: "Titre, description et créateur requis" });
@@ -17,6 +17,7 @@ router.post('/projets', (req, res) => {
     description,
     besoins: besoins || [],
     createur,
+    createurId: createurId || null,
     githubUrl: githubUrl || null,
     dateCreation: new Date(),
   };
