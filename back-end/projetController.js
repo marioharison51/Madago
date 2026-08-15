@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { charger, sauvegarder } = require('./storage');
 
-// Stockage simple en mémoire (à remplacer par une vraie base de données plus tard)
-let projets = [];
+let projets = charger('projets.json', []);
 
-// Route POST publier un projet
 router.post('/projets', (req, res) => {
   const { titre, description, besoins, createur, githubUrl } = req.body;
 
@@ -22,16 +21,15 @@ router.post('/projets', (req, res) => {
     dateCreation: new Date(),
   };
   projets.push(projet);
+  sauvegarder('projets.json', projets);
 
   res.status(201).json({ message: "Projet publié", projet });
 });
 
-// Route GET liste des projets
 router.get('/projets', (req, res) => {
   res.json(projets);
 });
 
-// Route GET un projet précis
 router.get('/projets/:id', (req, res) => {
   const projet = projets.find((p) => p.id === req.params.id);
   if (!projet) {
@@ -40,7 +38,6 @@ router.get('/projets/:id', (req, res) => {
   res.json(projet);
 });
 
-// Route GET infos GitHub d'un projet (via l'API publique GitHub)
 router.get('/projets/:id/github', async (req, res) => {
   const projet = projets.find((p) => p.id === req.params.id);
   if (!projet) {
