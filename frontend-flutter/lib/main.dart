@@ -13,7 +13,196 @@ class MadagoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Madago',
       theme: ThemeData(primarySwatch: Colors.indigo),
-      home: const ProfilPage(),
+      home: const LoginPage(),
+    );
+  }
+}
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final emailController = TextEditingController();
+  final motDePasseController = TextEditingController();
+  String? erreur;
+  bool chargement = false;
+
+  Future<void> seConnecter() async {
+    if (emailController.text.isEmpty || motDePasseController.text.isEmpty) return;
+    setState(() {
+      chargement = true;
+      erreur = null;
+    });
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/login'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "email": emailController.text,
+          "motDePasse": motDePasseController.text,
+        }),
+      );
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProfilPage()),
+        );
+      } else {
+        final data = json.decode(response.body);
+        setState(() {
+          erreur = data['message'] ?? "Erreur de connexion";
+          chargement = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        erreur = "Erreur de connexion : $e";
+        chargement = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Connexion')),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Madago', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 32),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: motDePasseController,
+              decoration: const InputDecoration(labelText: "Mot de passe"),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            if (erreur != null)
+              Text(erreur!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 10),
+            chargement
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: seConnecter,
+                    child: const Text("Se connecter"),
+                  ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterPage()),
+                );
+              },
+              child: const Text("Pas encore de compte ? S'inscrire"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  final nomController = TextEditingController();
+  final emailController = TextEditingController();
+  final motDePasseController = TextEditingController();
+  String? erreur;
+  bool chargement = false;
+
+  Future<void> sInscrire() async {
+    if (nomController.text.isEmpty || emailController.text.isEmpty || motDePasseController.text.isEmpty) return;
+    setState(() {
+      chargement = true;
+      erreur = null;
+    });
+    try {
+      final response = await http.post(
+        Uri.parse('http://localhost:3000/register'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "nom": nomController.text,
+          "email": emailController.text,
+          "motDePasse": motDePasseController.text,
+        }),
+      );
+      if (response.statusCode == 201) {
+        if (!mounted) return;
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Compte créé, tu peux te connecter")),
+        );
+      } else {
+        final data = json.decode(response.body);
+        setState(() {
+          erreur = data['message'] ?? "Erreur lors de l'inscription";
+          chargement = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        erreur = "Erreur de connexion : $e";
+        chargement = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Inscription')),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: nomController,
+              decoration: const InputDecoration(labelText: "Nom"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: motDePasseController,
+              decoration: const InputDecoration(labelText: "Mot de passe"),
+              obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            if (erreur != null)
+              Text(erreur!, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 10),
+            chargement
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: sInscrire,
+                    child: const Text("S'inscrire"),
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -144,6 +333,17 @@ class _ProfilPageState extends State<ProfilPage> {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatPage()));
                           },
                           child: const Text('Chat en temps réel'),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginPage()),
+                              (route) => false,
+                            );
+                          },
+                          child: const Text('Se déconnecter'),
                         ),
                         const SizedBox(height: 20),
                         const Text('Messages :'),
