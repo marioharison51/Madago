@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { charger, sauvegarder } = require('./storage');
 
-// Stockage simple en mémoire (à remplacer par une vraie base de données plus tard)
-let evenements = [];
+let evenements = charger('evenements.json', []);
 
-// Route POST créer un événement
 router.post('/evenements', (req, res) => {
   const { nom, date, lieu } = req.body;
 
@@ -20,16 +19,15 @@ router.post('/evenements', (req, res) => {
     participants: [],
   };
   evenements.push(evenement);
+  sauvegarder('evenements.json', evenements);
 
   res.status(201).json({ message: "Événement créé", evenement });
 });
 
-// Route GET liste des événements
 router.get('/evenements', (req, res) => {
   res.json(evenements);
 });
 
-// Route POST participer à un événement
 router.post('/evenements/:id/participer', (req, res) => {
   const evenement = evenements.find((e) => e.id === req.params.id);
   if (!evenement) {
@@ -39,6 +37,7 @@ router.post('/evenements/:id/participer', (req, res) => {
   if (!evenement.participants.includes(participant)) {
     evenement.participants.push(participant);
   }
+  sauvegarder('evenements.json', evenements);
   res.json({ message: "Participation enregistrée", evenement });
 });
 
