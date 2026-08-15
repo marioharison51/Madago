@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const { charger, sauvegarder } = require('./storage');
 
-// Stockage simple en mémoire (à remplacer par une vraie base de données plus tard)
-let conversations = [];
+let conversations = charger('messages.json', []);
 
-// Route GET conversation entre deux utilisateurs
 router.get('/messages/:userA/:userB', (req, res) => {
   const { userA, userB } = req.params;
   const historique = conversations.filter(
@@ -15,7 +14,6 @@ router.get('/messages/:userA/:userB', (req, res) => {
   res.json(historique);
 });
 
-// Route POST envoyer un message (fallback HTTP, en plus du temps réel)
 router.post('/messages', (req, res) => {
   const { expediteur, destinataire, contenu } = req.body;
   if (!expediteur || !destinataire || !contenu) {
@@ -23,6 +21,7 @@ router.post('/messages', (req, res) => {
   }
   const message = { expediteur, destinataire, contenu, date: new Date() };
   conversations.push(message);
+  sauvegarder('messages.json', conversations);
   res.status(201).json({ message: "Message envoyé", data: message });
 });
 
