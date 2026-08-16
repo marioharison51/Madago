@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:convert';
 
-// ⚠️ Remplace par ton URL Render exacte
-const String baseUrl = 'https://madago-backend.onrender.com/projets';
+const String baseUrl = 'https://madago-backend.onrender.com';
 
 void main() => runApp(const MadagoApp());
 
@@ -58,6 +57,15 @@ class MadagoApp extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: Colors.white,
         ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          elevation: 8,
+          shadowColor: Colors.black26,
+          indicatorColor: const Color(0xFFEEF2FF),
+          labelTextStyle: WidgetStateProperty.all(
+            const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        ),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(fontSize: 16, color: Color(0xFF1F2937)),
           bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF374151)),
@@ -79,12 +87,10 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   bool modeConnexion = true;
 
-  // Connexion
   final emailController = TextEditingController();
   final motDePasseController = TextEditingController();
   bool motDePasseVisible = false;
 
-  // Inscription
   final nomController = TextEditingController();
   final emailInscriptionController = TextEditingController();
   final motDePasseInscriptionController = TextEditingController();
@@ -100,14 +106,16 @@ class _AuthPageState extends State<AuthPage> {
       erreur = null;
     });
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "email": emailController.text.trim(),
-          "motDePasse": motDePasseController.text,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/login'),
+            headers: {"Content-Type": "application/json"},
+            body: json.encode({
+              "email": emailController.text.trim(),
+              "motDePasse": motDePasseController.text,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (!mounted) return;
@@ -144,15 +152,17 @@ class _AuthPageState extends State<AuthPage> {
       erreur = null;
     });
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/register'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "nom": nomController.text,
-          "email": emailInscriptionController.text.trim(),
-          "motDePasse": motDePasseInscriptionController.text,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/register'),
+            headers: {"Content-Type": "application/json"},
+            body: json.encode({
+              "nom": nomController.text,
+              "email": emailInscriptionController.text.trim(),
+              "motDePasse": motDePasseInscriptionController.text,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 201) {
         setState(() {
           modeConnexion = true;
@@ -445,11 +455,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       message = null;
     });
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/mot-de-passe-oublie'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"email": emailController.text.trim()}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/mot-de-passe-oublie'),
+            headers: {"Content-Type": "application/json"},
+            body: json.encode({"email": emailController.text.trim()}),
+          )
+          .timeout(const Duration(seconds: 20));
       final data = json.decode(response.body);
       if (response.statusCode == 200) {
         setState(() {
@@ -606,7 +618,7 @@ class _ProfilTabState extends State<ProfilTab> {
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/profil/${widget.userId}'))
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         setState(() {
           profil = json.decode(response.body);
@@ -647,6 +659,12 @@ class _ProfilTabState extends State<ProfilTab> {
               const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
               const SizedBox(height: 12),
               Text(erreur!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 8),
+              Text(
+                "Le serveur peut mettre jusqu'à une minute à démarrer.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: fetchProfil,
