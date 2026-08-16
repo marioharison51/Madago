@@ -211,17 +211,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-class ForgotPasswordPage extends StatefulWidget {
-  const ForgotPasswordPage({super.key});
-
-  @override
-  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
-}
-
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final emailController = TextEditingController();
   String? message;
-  String? nouveauMotDePasse;
   bool chargement = false;
   bool succes = false;
 
@@ -230,7 +222,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     setState(() {
       chargement = true;
       message = null;
-      nouveauMotDePasse = null;
     });
     try {
       final response = await http.post(
@@ -242,7 +233,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       if (response.statusCode == 200) {
         setState(() {
           succes = true;
-          nouveauMotDePasse = data['nouveauMotDePasse'];
+          message = data['message'];
           chargement = false;
         });
       } else {
@@ -271,7 +262,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             const Icon(Icons.lock_reset, size: 48, color: Color(0xFF4F46E5)),
             const SizedBox(height: 16),
             const Text(
-              "Entre ton email, un nouveau mot de passe temporaire te sera affiché ici.",
+              "Entre ton email, un nouveau mot de passe temporaire te sera envoyé par email.",
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -287,18 +278,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
             const SizedBox(height: 20),
             if (message != null)
-              Text(message!, style: const TextStyle(color: Colors.red)),
-            if (succes && nouveauMotDePasse != null)
-              Card(
-                color: const Color(0xFFEEF2FF),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    "Nouveau mot de passe : $nouveauMotDePasse\nConnecte-toi avec celui-ci.",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
+              Text(
+                message!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: succes ? Colors.green : Colors.red),
               ),
             const SizedBox(height: 16),
             chargement
@@ -307,8 +290,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: reinitialiser,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text("Réinitialiser"),
+                      icon: const Icon(Icons.send),
+                      label: const Text("Envoyer"),
                     ),
                   ),
           ],
