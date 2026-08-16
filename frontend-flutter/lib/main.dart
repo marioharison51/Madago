@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:convert';
 
+// Change uniquement cette ligne une fois le backend déployé sur Render
+const String baseUrl = 'http://localhost:3000';
+
 void main() => runApp(const MadagoApp());
 
 class MadagoApp extends StatelessWidget {
@@ -87,7 +90,7 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/login'),
+        Uri.parse('$baseUrl/login'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "email": emailController.text.trim(),
@@ -211,6 +214,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
+
+  @override
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
+}
+
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final emailController = TextEditingController();
   String? message;
@@ -225,7 +235,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/mot-de-passe-oublie'),
+        Uri.parse('$baseUrl/mot-de-passe-oublie'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({"email": emailController.text.trim()}),
       );
@@ -324,7 +334,7 @@ class _RegisterPageState extends State<RegisterPage> {
     });
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/register'),
+        Uri.parse('$baseUrl/register'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "nom": nomController.text,
@@ -503,7 +513,7 @@ class _ProfilTabState extends State<ProfilTab> {
   Future<void> fetchProfil() async {
     try {
       final response = await http
-          .get(Uri.parse('http://localhost:3000/profil/${widget.userId}'))
+          .get(Uri.parse('$baseUrl/profil/${widget.userId}'))
           .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         setState(() {
@@ -524,7 +534,7 @@ class _ProfilTabState extends State<ProfilTab> {
 
   Future<void> noterProfil(int note) async {
     await http.post(
-      Uri.parse('http://localhost:3000/profil/${widget.userId}/noter'),
+      Uri.parse('$baseUrl/profil/${widget.userId}/noter'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({"note": note}),
     );
@@ -679,7 +689,7 @@ class _ModifierProfilPageState extends State<ModifierProfilPage> {
     });
     try {
       final response = await http.put(
-        Uri.parse('http://localhost:3000/profil/${widget.userId}'),
+        Uri.parse('$baseUrl/profil/${widget.userId}'),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "nom": nomController.text,
@@ -807,7 +817,7 @@ class _ProjetsTabState extends State<ProjetsTab> {
   }
 
   Future<void> fetchProjets() async {
-    final response = await http.get(Uri.parse('http://localhost:3000/projets'));
+    final response = await http.get(Uri.parse('$baseUrl/projets'));
     if (response.statusCode == 200) {
       setState(() {
         projets = json.decode(response.body);
@@ -819,7 +829,7 @@ class _ProjetsTabState extends State<ProjetsTab> {
     if (titreController.text.isEmpty || descriptionController.text.isEmpty) return;
 
     await http.post(
-      Uri.parse('http://localhost:3000/projets'),
+      Uri.parse('$baseUrl/projets'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({
         "titre": titreController.text,
@@ -986,7 +996,7 @@ class _ProjetCardState extends State<ProjetCard> {
       erreur = null;
     });
     final response = await http.get(
-      Uri.parse('http://localhost:3000/projets/${widget.projet['id']}/github'),
+      Uri.parse('$baseUrl/projets/${widget.projet['id']}/github'),
     );
     if (response.statusCode == 200) {
       setState(() {
@@ -1117,7 +1127,7 @@ class _MessagePriveTabState extends State<MessagePriveTab> {
 
   Future<void> chargerMessages() async {
     final response = await http.get(
-      Uri.parse('http://localhost:3000/messages/${widget.userId}/${widget.autreId}'),
+      Uri.parse('$baseUrl/messages/${widget.userId}/${widget.autreId}'),
     );
     if (response.statusCode == 200) {
       setState(() {
@@ -1132,7 +1142,7 @@ class _MessagePriveTabState extends State<MessagePriveTab> {
   Future<void> envoyer() async {
     if (messageController.text.isEmpty) return;
     await http.post(
-      Uri.parse('http://localhost:3000/messages'),
+      Uri.parse('$baseUrl/messages'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({
         "expediteur": widget.userId,
@@ -1222,7 +1232,7 @@ class _RechercheTabState extends State<RechercheTab> {
   Future<void> rechercher() async {
     if (competenceController.text.isEmpty) return;
     final response = await http.get(
-      Uri.parse('http://localhost:3000/profils/recherche?competence=${competenceController.text}'),
+      Uri.parse('$baseUrl/profils/recherche?competence=${competenceController.text}'),
     );
     if (response.statusCode == 200) {
       setState(() {
@@ -1299,7 +1309,7 @@ class _EvenementsTabState extends State<EvenementsTab> {
   }
 
   Future<void> fetchEvenements() async {
-    final response = await http.get(Uri.parse('http://localhost:3000/evenements'));
+    final response = await http.get(Uri.parse('$baseUrl/evenements'));
     if (response.statusCode == 200) {
       setState(() {
         evenements = json.decode(response.body);
@@ -1311,7 +1321,7 @@ class _EvenementsTabState extends State<EvenementsTab> {
     if (nomController.text.isEmpty || dateController.text.isEmpty || lieuController.text.isEmpty) return;
 
     await http.post(
-      Uri.parse('http://localhost:3000/evenements'),
+      Uri.parse('$baseUrl/evenements'),
       headers: {"Content-Type": "application/json"},
       body: json.encode({
         "nom": nomController.text,
@@ -1421,7 +1431,7 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   void connecterSocket() {
-    socket = IO.io('http://localhost:3000', <String, dynamic>{
+    socket = IO.io(baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
     });
