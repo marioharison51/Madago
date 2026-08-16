@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'dart:convert';
 
-// Change uniquement cette ligne une fois le backend déployé sur Render
-const String baseUrl = 'http://localhost:3000';
+// ⚠️ Remplace par ton URL Render exacte
+const String baseUrl = 'https://madago-backend.onrender.com/projets';
 
 void main() => runApp(const MadagoApp());
 
@@ -15,6 +15,7 @@ class MadagoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Madago',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -44,7 +45,7 @@ class MadagoApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: const Color(0xFFF3F4F6),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -63,24 +64,34 @@ class MadagoApp extends StatelessWidget {
           titleLarge: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF111827)),
         ),
       ),
-      home: const LoginPage(),
+      home: const AuthPage(),
     );
   }
 }
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<AuthPage> createState() => _AuthPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _AuthPageState extends State<AuthPage> {
+  bool modeConnexion = true;
+
+  // Connexion
   final emailController = TextEditingController();
   final motDePasseController = TextEditingController();
+  bool motDePasseVisible = false;
+
+  // Inscription
+  final nomController = TextEditingController();
+  final emailInscriptionController = TextEditingController();
+  final motDePasseInscriptionController = TextEditingController();
+  bool motDePasseInscriptionVisible = false;
+
   String? erreur;
   bool chargement = false;
-  bool motDePasseVisible = false;
 
   Future<void> seConnecter() async {
     if (emailController.text.isEmpty || motDePasseController.text.isEmpty) return;
@@ -124,89 +135,289 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> sInscrire() async {
+    if (nomController.text.isEmpty ||
+        emailInscriptionController.text.isEmpty ||
+        motDePasseInscriptionController.text.isEmpty) return;
+    setState(() {
+      chargement = true;
+      erreur = null;
+    });
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "nom": nomController.text,
+          "email": emailInscriptionController.text.trim(),
+          "motDePasse": motDePasseInscriptionController.text,
+        }),
+      );
+      if (response.statusCode == 201) {
+        setState(() {
+          modeConnexion = true;
+          chargement = false;
+          emailController.text = emailInscriptionController.text.trim();
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Compte créé ! Connecte-toi.")),
+        );
+      } else {
+        final data = json.decode(response.body);
+        setState(() {
+          erreur = data['message'] ?? "Erreur lors de l'inscription";
+          chargement = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        erreur = "Erreur de connexion : $e";
+        chargement = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.groups_rounded, size: 64, color: Color(0xFF4F46E5)),
-              const SizedBox(height: 12),
-              const Text('Madago', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(
-                'Connecte-toi pour continuer',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                textCapitalization: TextCapitalization.none,
-                autocorrect: false,
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: motDePasseController,
-                decoration: InputDecoration(
-                  labelText: "Mot de passe",
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(motDePasseVisible ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => motDePasseVisible = !motDePasseVisible),
-                  ),
-                ),
-                obscureText: !motDePasseVisible,
-                autocorrect: false,
-                enableSuggestions: false,
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
-                    );
-                  },
-                  child: const Text("Mot de passe oublié ?"),
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (erreur != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(erreur!, style: const TextStyle(color: Colors.red)),
-                ),
-              chargement
-                  ? const CircularProgressIndicator()
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: seConnecter,
-                        icon: const Icon(Icons.login),
-                        label: const Text("Se connecter"),
-                      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF4F46E5), Color(0xFFF7F7FB)],
+            stops: [0.0, 0.35],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12)],
                     ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RegisterPage()),
-                  );
-                },
-                child: const Text("Pas encore de compte ? S'inscrire"),
+                    child: const Icon(Icons.groups_rounded, size: 48, color: Color(0xFF4F46E5)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Madago',
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Connecte les talents, fais grandir tes idées',
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 28),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20)],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() {
+                                    modeConnexion = true;
+                                    erreur = null;
+                                  }),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: modeConnexion ? Colors.white : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: modeConnexion
+                                          ? [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6)]
+                                          : [],
+                                    ),
+                                    child: Text(
+                                      'Se connecter',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: modeConnexion ? const Color(0xFF4F46E5) : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() {
+                                    modeConnexion = false;
+                                    erreur = null;
+                                  }),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: !modeConnexion ? Colors.white : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(10),
+                                      boxShadow: !modeConnexion
+                                          ? [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6)]
+                                          : [],
+                                    ),
+                                    child: Text(
+                                      'S\'inscrire',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: !modeConnexion ? const Color(0xFF4F46E5) : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: modeConnexion
+                              ? Column(
+                                  key: const ValueKey('connexion'),
+                                  children: [
+                                    TextField(
+                                      controller: emailController,
+                                      decoration: const InputDecoration(
+                                        labelText: "Email",
+                                        prefixIcon: Icon(Icons.email_outlined),
+                                      ),
+                                      keyboardType: TextInputType.emailAddress,
+                                      textCapitalization: TextCapitalization.none,
+                                      autocorrect: false,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: motDePasseController,
+                                      decoration: InputDecoration(
+                                        labelText: "Mot de passe",
+                                        prefixIcon: const Icon(Icons.lock_outline),
+                                        suffixIcon: IconButton(
+                                          icon: Icon(motDePasseVisible ? Icons.visibility_off : Icons.visibility),
+                                          onPressed: () => setState(() => motDePasseVisible = !motDePasseVisible),
+                                        ),
+                                      ),
+                                      obscureText: !motDePasseVisible,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                    ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
+                                          );
+                                        },
+                                        child: const Text("Mot de passe oublié ?"),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (erreur != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Text(erreur!, style: const TextStyle(color: Colors.red)),
+                                      ),
+                                    chargement
+                                        ? const CircularProgressIndicator()
+                                        : SizedBox(
+                                            width: double.infinity,
+                                            child: ElevatedButton.icon(
+                                              onPressed: seConnecter,
+                                              icon: const Icon(Icons.login),
+                                              label: const Text("Se connecter"),
+                                            ),
+                                          ),
+                                  ],
+                                )
+                              : Column(
+                                  key: const ValueKey('inscription'),
+                                  children: [
+                                    TextField(
+                                      controller: nomController,
+                                      decoration: const InputDecoration(
+                                        labelText: "Nom",
+                                        prefixIcon: Icon(Icons.person_outline),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: emailInscriptionController,
+                                      decoration: const InputDecoration(
+                                        labelText: "Email",
+                                        prefixIcon: Icon(Icons.email_outlined),
+                                      ),
+                                      keyboardType: TextInputType.emailAddress,
+                                      textCapitalization: TextCapitalization.none,
+                                      autocorrect: false,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                      controller: motDePasseInscriptionController,
+                                      decoration: InputDecoration(
+                                        labelText: "Mot de passe",
+                                        prefixIcon: const Icon(Icons.lock_outline),
+                                        suffixIcon: IconButton(
+                                          icon: Icon(motDePasseInscriptionVisible ? Icons.visibility_off : Icons.visibility),
+                                          onPressed: () => setState(
+                                              () => motDePasseInscriptionVisible = !motDePasseInscriptionVisible),
+                                        ),
+                                      ),
+                                      obscureText: !motDePasseInscriptionVisible,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    if (erreur != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 12),
+                                        child: Text(erreur!, style: const TextStyle(color: Colors.red)),
+                                      ),
+                                    chargement
+                                        ? const CircularProgressIndicator()
+                                        : SizedBox(
+                                            width: double.infinity,
+                                            child: ElevatedButton.icon(
+                                              onPressed: sInscrire,
+                                              icon: const Icon(Icons.check),
+                                              label: const Text("S'inscrire"),
+                                            ),
+                                          ),
+                                  ],
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -311,125 +522,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 }
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
-
-  @override
-  State<RegisterPage> createState() => _RegisterPageState();
-}
-
-class _RegisterPageState extends State<RegisterPage> {
-  final nomController = TextEditingController();
-  final emailController = TextEditingController();
-  final motDePasseController = TextEditingController();
-  String? erreur;
-  bool chargement = false;
-  bool motDePasseVisible = false;
-
-  Future<void> sInscrire() async {
-    if (nomController.text.isEmpty || emailController.text.isEmpty || motDePasseController.text.isEmpty) return;
-    setState(() {
-      chargement = true;
-      erreur = null;
-    });
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/register'),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({
-          "nom": nomController.text,
-          "email": emailController.text.trim(),
-          "motDePasse": motDePasseController.text,
-        }),
-      );
-      if (response.statusCode == 201) {
-        if (!mounted) return;
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Compte créé, tu peux te connecter")),
-        );
-      } else {
-        final data = json.decode(response.body);
-        setState(() {
-          erreur = data['message'] ?? "Erreur lors de l'inscription";
-          chargement = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        erreur = "Erreur de connexion : $e";
-        chargement = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Inscription')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.person_add_alt_1, size: 48, color: Color(0xFF4F46E5)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: nomController,
-              decoration: const InputDecoration(
-                labelText: "Nom",
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                prefixIcon: Icon(Icons.email_outlined),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              textCapitalization: TextCapitalization.none,
-              autocorrect: false,
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: motDePasseController,
-              decoration: InputDecoration(
-                labelText: "Mot de passe",
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(motDePasseVisible ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => motDePasseVisible = !motDePasseVisible),
-                ),
-              ),
-              obscureText: !motDePasseVisible,
-              autocorrect: false,
-              enableSuggestions: false,
-            ),
-            const SizedBox(height: 20),
-            if (erreur != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(erreur!, style: const TextStyle(color: Colors.red)),
-              ),
-            chargement
-                ? const CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: sInscrire,
-                      icon: const Icon(Icons.check),
-                      label: const Text("S'inscrire"),
-                    ),
-                  ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class MainScreen extends StatefulWidget {
   final String userId;
   final String userNom;
@@ -456,7 +548,7 @@ class _MainScreenState extends State<MainScreen> {
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
+                MaterialPageRoute(builder: (_) => const AuthPage()),
                 (route) => false,
               );
             },
@@ -514,7 +606,7 @@ class _ProfilTabState extends State<ProfilTab> {
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/profil/${widget.userId}'))
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         setState(() {
           profil = json.decode(response.body);
